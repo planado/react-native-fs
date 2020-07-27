@@ -165,26 +165,31 @@ public class Uploader extends AsyncTask<UploadParams, int[], UploadResult> {
             request.flush();
             request.close();
 
-            responseStream = new BufferedInputStream(connection.getInputStream());
-            responseStreamReader = new BufferedReader(new InputStreamReader(responseStream));
+            StringBuilder stringBuilder = new StringBuilder();
+            String response = stringBuilder.toString();
+            String line = "";
+
             WritableMap responseHeaders = Arguments.createMap();
             Map<String, List<String>> map = connection.getHeaderFields();
             for (Map.Entry<String, List<String>> entry : map.entrySet()) {
                 int count = 0;
                 responseHeaders.putString(entry.getKey(), entry.getValue().get(count));
             }
-            StringBuilder stringBuilder = new StringBuilder();
-            String line = "";
 
-            while ((line = responseStreamReader.readLine()) != null) {
-                stringBuilder.append(line).append("\n");
+            statusCode = connection.getResponseCode();
+
+            if (statusCode >= 200 && statusCode < 300) {
+                responseStream = new BufferedInputStream(connection.getInputStream());
+                responseStreamReader = new BufferedReader(new InputStreamReader(responseStream));
+
+                while ((line = responseStreamReader.readLine()) != null) {
+                    stringBuilder.append(line).append("\n");
+                }
             }
 
-            String response = stringBuilder.toString();
-            statusCode = connection.getResponseCode();
+            res.statusCode = statusCode;
             res.headers = responseHeaders;
             res.body = response;
-            res.statusCode = statusCode;
         } finally {
             if (connection != null)
                 connection.disconnect();
